@@ -1,41 +1,64 @@
 module("setup and teardown");
 
 test("with no conflicts", function() {
-  equal(typeof mock, "undefined", "'mock' is not available globally before setup");
   equal(typeof spy, "undefined", "'spy' is not available globally before setup");
   equal(typeof unspy, "undefined", "'unspy' is not available globally before setup");
+  equal(typeof stub, "undefined", "'stub' is not available globally before setup");
+  equal(typeof unstub, "undefined", "'unstub' is not available globally before setup");
+  equal(typeof mock, "undefined", "'mock' is not available globally before setup");
+  equal(typeof unmock, "undefined", "'unmock' is not available globally before setup");
 
   jstest.setup();
 
-  equal(typeof mock, "function", "'mock' is available globally after setup");
   equal(typeof spy, "function", "'spy' is available globally after setup");
   equal(typeof unspy, "function", "'unuspy' is available globally after setup");
+  equal(typeof stub, "function", "'stub' is available globally after setup");
+  equal(typeof unstub, "function", "'unstub' is available globally after setup");
+  equal(typeof mock, "function", "'mock' is available globally after setup");
+  equal(typeof unmock, "function", "'unmock' is available globally after setup");
 
   jstest.teardown();
 
-  equal(typeof mock, "undefined", "'mock' is not available globally after teardown");
   equal(typeof spy, "undefined", "'spy' is not available globally after teardown");
   equal(typeof unspy, "undefined", "'unspy' is not available globally after teardown");
+  equal(typeof stub, "undefined", "'stub' is not available globally after teardown");
+  equal(typeof unstub, "undefined", "'unstub' is not available globally after teardown");
+  equal(typeof mock, "undefined", "'mock' is not available globally after teardown");
+  equal(typeof unmock, "undefined", "'unmock' is not available globally after teardown");
 });
 
 test("with conflicts", function() {
-  window.mock = window.spy = window.unspy = 1;
+  window.spy = 1;
+  window.unspy = 1;
+  window.stub = 1;
+  window.unstub = 1;
+  window.mock = 1;
+  window.unmock = 1;
 
   jstest.setup();
 
-  equal(typeof mock, "function", "'mock' is overwritten globally after setup");
   equal(typeof spy, "function", "'spy' is overwritten globally after setup");
   equal(typeof unspy, "function", "'unspy' is overwritten globally after setup");
+  equal(typeof stub, "function", "'stub' is overwritten globally after setup");
+  equal(typeof unstub, "function", "'unstub' is overwritten globally after setup");
+  equal(typeof mock, "function", "'mock' is overwritten globally after setup");
+  equal(typeof unstub, "function", "'unmock' is overwritten globally after setup");
 
   jstest.teardown();
 
-  equal(typeof mock, "number", "'mock' is restored globally after teardown");
   equal(typeof spy, "number", "'spy' is restored globally after teardown");
   equal(typeof unspy, "number", "'unspy' is restored globally after teardown");
+  equal(typeof stub, "number", "'stub' is restored globally after teardown");
+  equal(typeof unstub, "number", "'unstub' is restored globally after teardown");
+  equal(typeof mock, "number", "'mock' is restored globally after teardown");
+  equal(typeof unmock, "number", "'unmock' is restored globally after teardown");
 
-  delete window.mock;
   delete window.spy;
   delete window.unspy;
+  delete window.stub;
+  delete window.unstub;
+  delete window.mock;
+  delete window.unmock;
 });
 
 module("spy");
@@ -65,6 +88,12 @@ test("basic spying and unspying", function() {
 
   equal(foo(10), 10, "foo still works");
   equal(typeof foo.calls, "undefined", "foo no longer has the calls attribute");
+
+  foo = jstest.spy(foo);
+
+  equal(foo.calls.length, 0, "after re-spying, foo has an empty calls array");
+
+  jstest.unspy(foo);
 });
 
 test("automatic spy attachment in namespace", function() {
@@ -133,6 +162,70 @@ test("automatic spy attachment to globals", function() {
   equal(typeof bar.baz.calls, "undefined", "bar.baz no long has the calls attribute");
 });
 
-module("mock");
+module("stub");
+
+test("basic stubbing and unstubbing", function() {
+  var foo = jstest.stub(function(x) {
+    return x;
+  }, function(x) {
+    return x + 1;
+  });
+
+  equal(foo(1), 2, "stubbed a function reference");
+
+  foo = jstest.unstub(foo);
+
+  equal(foo(1), 1, "function reference was unstubbed");
+
+  foo = jstest.stub(foo, function() {
+    return 3;
+  });
+
+  equal(foo(), 3, "function could be re-stubbed");
+
+  jstest.unstub(foo);
+});
+
+test("automatic stub attachment in namespace", function() {
+  var foo = {
+    bar: function(x) {
+      return x;
+    },
+
+    _baz: 10
+  };
+
+  jstest.stub(foo, "bar", function(x) {
+    return this._baz;
+  });
+
+  equal(foo.bar(), 10, "stubbing in namespace worked, and context was preserved");
+
+  jstest.unstub(foo, "bar");
+
+  equal(foo.bar(3), 3, "unstubbing in namespace worked");
+});
+
+test("automatic stub attachment to globals", function() {
+  window.foo = {
+    bar: function(x) {
+      return x;
+    },
+
+    _baz: 10
+  };
+
+  jstest.stub("foo.bar", function() {
+    return 3;
+  });
+
+  equal(foo.bar(), 3, "stubbing in global namespace worked");
+
+  jstest.unstub("foo.bar");
+
+  equal(foo.bar(5), 5, "unstubbing in global namespace worked");
+
+  delete window.foo;
+});
 
 module("timecontrol");

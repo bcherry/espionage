@@ -1,7 +1,8 @@
 var jstest = (function() {
   var hasBeenSetup = false,
       windowProps = {},
-      spiedFunctions = [];
+      spiedFunctions = [],
+      stubbedFunctions = [];
 
   function spy(namespace, property) {
     if (typeof namespace === "function" && typeof property == "undefined") {
@@ -50,7 +51,48 @@ var jstest = (function() {
     namespace[property] = findSpied(namespace[property]).original;
   }
 
+  function stub(namespace, property, value) {
+    if (typeof namespace === "function" && typeof property == "function") {
+      return generateStub(namespace, property);
+    }
+
+    if (typeof property === "function" && typeof value === "undefined") {
+      value = property;
+      property = undefined;
+    }
+
+    var resolved = resolveNamespace(namespace, property);
+    namespace = resolved.namespace;
+    property = resolved.property;
+
+    namespace[property] = generateStub(namespace[property], value);
+  }
+
+  function unstub(namespace, property) {
+    if (typeof namespace === "function" && typeof property == "undefined") {
+      return findStubbed(namespace).original;
+    }
+
+    var resolved = resolveNamespace(namespace, property);
+    namespace = resolved.namespace;
+    property = resolved.property;
+
+    namespace[property] = findStubbed(namespace[property]).original;
+  }
+
+  function generateStub(original, stubbed) {
+    stubbedFunctions.push({
+      original: original,
+      stubbed: stubbed
+    });
+
+    return stubbed;
+  }
+
   function mock() {
+  }
+
+  function unmock() {
   }
 
   function setup() {
@@ -60,9 +102,12 @@ var jstest = (function() {
 
     hasBeenSetup = true;
 
-    replaceGlobal("mock", mock);
     replaceGlobal("spy", spy);
     replaceGlobal("unspy", unspy);
+    replaceGlobal("stub", stub);
+    replaceGlobal("unstub", stub);
+    replaceGlobal("mock", mock);
+    replaceGlobal("unmock", unmock);
 
     return true;
   }
@@ -74,9 +119,12 @@ var jstest = (function() {
 
     hasBeenSetup = false;
 
-    putGlobalBack("mock");
     putGlobalBack("spy");
     putGlobalBack("unspy");
+    putGlobalBack("stub");
+    putGlobalBack("unstub");
+    putGlobalBack("mock");
+    putGlobalBack("unmock");
 
     return true;
   }
@@ -109,6 +157,14 @@ var jstest = (function() {
     }
   }
 
+  function findStubbed(stubbed) {
+    for (var i = 0; i < stubbedFunctions.length; i++) {
+      if (stubbedFunctions[i].stubbed === stubbed) {
+        return stubbedFunctions[i];
+      }
+    }
+  }
+
   function resolveNamespace(namespace, property) {
     if (typeof namespace === "string") {
       property = namespace;
@@ -132,7 +188,10 @@ var jstest = (function() {
   return {
     spy: spy,
     unspy: unspy,
+    stub: stub,
+    unstub: unstub,
     mock: mock,
+    unmock: unmock,
     setup: setup,
     teardown: teardown,
     use: use
@@ -145,15 +204,17 @@ var jstest = (function() {
     - arguments for each call
     - return value for each call
 
-  mock - re-implement a function
+  stub - re-implement a function
     - replace entire function body
       - access to fall-back to original
+
+  mock - full control over function (stub and spy)
     - just specify a return value
     - limit to particular arguments
     - require call count
 
   time control - allow manual passage of time in linear fashion
-    - mock setTimeout, setInterval
+    - stub setTimeout, setInterval
     - wait() to step into the future
     - flush() to clear all timers
 

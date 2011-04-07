@@ -1,20 +1,79 @@
+// Make these simply basic global vars, so IE doesn't throw when trying to reassign
+try {
+  setTimeout = setTimeout;
+} catch (e) {
+  eval("var setTimeout = (window.__proto__ || window.constructor.prototype).setTimeout,\
+            setInterval = (window.__proto__ || window.constructor.prototype).setInterval,\
+            clearTimeout = (window.__proto__ || window.constructor.prototype).clearTimeout,\
+            clearInterval = (window.__proto__ || window.constructor.prototype).clearInterval;");
+}
+
 var jstest = (function() {
   var hasBeenSetup = false,
       windowProps = {},
       spiedFunctions = [],
       stubbedFunctions = [];
 
-  function spy(namespace, property) {
-    if (typeof namespace === "function" && typeof property == "undefined") {
-      return generateSpy(namespace);
+  var globalInterface = {
+    spy: function(namespace, property) {
+      if (typeof namespace === "function" && typeof property == "undefined") {
+        return generateSpy(namespace);
+      }
+
+      var resolved = resolveNamespace(namespace, property);
+      namespace = resolved.namespace;
+      property = resolved.property;
+
+      namespace[property] = generateSpy(namespace[property]);
+    },
+
+    unspy: function(namespace, property) {
+      if (typeof namespace === "function" && typeof property == "undefined") {
+        return findSpied(namespace).original;
+      }
+
+      var resolved = resolveNamespace(namespace, property);
+      namespace = resolved.namespace;
+      property = resolved.property;
+
+      namespace[property] = findSpied(namespace[property]).original;
+    },
+
+    stub: function(namespace, property, value) {
+      if (typeof namespace === "function" && typeof property == "function") {
+        return generateStub(namespace, property);
+      }
+
+      if (typeof property === "function" && typeof value === "undefined") {
+        value = property;
+        property = undefined;
+      }
+
+      var resolved = resolveNamespace(namespace, property);
+      namespace = resolved.namespace;
+      property = resolved.property;
+
+      namespace[property] = generateStub(namespace[property], value);
+    },
+
+    unstub: function(namespace, property) {
+      if (typeof namespace === "function" && typeof property == "undefined") {
+        return findStubbed(namespace).original;
+      }
+
+      var resolved = resolveNamespace(namespace, property);
+      namespace = resolved.namespace;
+      property = resolved.property;
+
+      namespace[property] = findStubbed(namespace[property]).original;
+    },
+
+    mock: function() {
+    },
+
+    unmock: function() {
     }
-
-    var resolved = resolveNamespace(namespace, property);
-    namespace = resolved.namespace;
-    property = resolved.property;
-
-    namespace[property] = generateSpy(namespace[property]);
-  }
+  };
 
   function generateSpy(fn) {
     function spied() {
@@ -39,47 +98,6 @@ var jstest = (function() {
     return spied;
   }
 
-  function unspy(namespace, property) {
-    if (typeof namespace === "function" && typeof property == "undefined") {
-      return findSpied(namespace).original;
-    }
-
-    var resolved = resolveNamespace(namespace, property);
-    namespace = resolved.namespace;
-    property = resolved.property;
-
-    namespace[property] = findSpied(namespace[property]).original;
-  }
-
-  function stub(namespace, property, value) {
-    if (typeof namespace === "function" && typeof property == "function") {
-      return generateStub(namespace, property);
-    }
-
-    if (typeof property === "function" && typeof value === "undefined") {
-      value = property;
-      property = undefined;
-    }
-
-    var resolved = resolveNamespace(namespace, property);
-    namespace = resolved.namespace;
-    property = resolved.property;
-
-    namespace[property] = generateStub(namespace[property], value);
-  }
-
-  function unstub(namespace, property) {
-    if (typeof namespace === "function" && typeof property == "undefined") {
-      return findStubbed(namespace).original;
-    }
-
-    var resolved = resolveNamespace(namespace, property);
-    namespace = resolved.namespace;
-    property = resolved.property;
-
-    namespace[property] = findStubbed(namespace[property]).original;
-  }
-
   function generateStub(original, stubbed) {
     stubbedFunctions.push({
       original: original,
@@ -87,49 +105,6 @@ var jstest = (function() {
     });
 
     return stubbed;
-  }
-
-  function mock() {
-  }
-
-  function unmock() {
-  }
-
-  function setup() {
-    if (hasBeenSetup) {
-      return false;
-    }
-
-    hasBeenSetup = true;
-
-    replaceGlobal("spy", spy);
-    replaceGlobal("unspy", unspy);
-    replaceGlobal("stub", stub);
-    replaceGlobal("unstub", stub);
-    replaceGlobal("mock", mock);
-    replaceGlobal("unmock", unmock);
-
-    return true;
-  }
-
-  function teardown() {
-    if (!hasBeenSetup) {
-      return false;
-    }
-
-    hasBeenSetup = false;
-
-    putGlobalBack("spy");
-    putGlobalBack("unspy");
-    putGlobalBack("stub");
-    putGlobalBack("unstub");
-    putGlobalBack("mock");
-    putGlobalBack("unmock");
-
-    return true;
-  }
-
-  function use() {
   }
 
   function replaceGlobal(property, value) {
@@ -185,17 +160,74 @@ var jstest = (function() {
   }
 
 
-  return {
-    spy: spy,
-    unspy: unspy,
-    stub: stub,
-    unstub: unstub,
-    mock: mock,
-    unmock: unmock,
-    setup: setup,
-    teardown: teardown,
-    use: use
+  function each(obj, fn) {
+    for (var prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        fn(prop, obj[prop]);
+      }
+    }
+  }
+
+  var publicInterface = {
+    setup: function() {
+      if (hasBeenSetup) {
+        return false;
+      }
+
+      hasBeenSetup = true;
+
+      each(globalInterface, function(prop, val) {
+        replaceGlobal(prop, val);
+      });
+
+      replaceGlobal("setTimeout", function() {
+        return "stubbed";
+      });
+
+      replaceGlobal("clearTimeout", function() {
+        return "stubbed";
+      });
+
+      replaceGlobal("setInterval", function() {
+        return "stubbed";
+      });
+
+      replaceGlobal("clearInterval", function() {
+        return "stubbed";
+      });
+
+
+      return true;
+    },
+
+    teardown: function() {
+      if (!hasBeenSetup) {
+        return false;
+      }
+
+      hasBeenSetup = false;
+
+      each(globalInterface, function(prop, val) {
+        putGlobalBack(prop);
+      });
+
+      putGlobalBack("setTimeout");
+      putGlobalBack("clearTimeout");
+      putGlobalBack("setInterval");
+      putGlobalBack("clearInterval");
+
+      return true;
+    },
+
+    use: function() {
+    }
   };
+
+  each(globalInterface, function(prop, val) {
+    publicInterface[prop] = val;
+  });
+
+  return publicInterface;
 }());
 
 /*

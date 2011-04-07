@@ -229,3 +229,39 @@ test("automatic stub attachment to globals", function() {
 });
 
 module("timecontrol");
+
+asyncTest("the global setTimeout isn't screwed up by jstest's meddling", function() {
+  setTimeout(function() {
+    ok(true, "setTimeout isn't messed up");
+
+    window.setTimeout(function() {
+      ok(true, "and window.setTimeout works");
+
+      jstest.setup();
+      jstest.teardown();
+
+      setTimeout(function() {
+        ok(true, "setTimeout still isn't messed up after a setup and a teardown");
+
+        window.setTimeout(function() {
+          ok(true, "and window.setTimeout is also good after the teardown");
+
+          start();
+        }, 0);
+      }, 0);
+    }, 0);
+  }, 0);
+});
+
+test("timer functions get replaced", function() {
+  jstest.setup();
+
+  equal(setTimeout(), "stubbed", "setTimeout was replaced");
+  equal(clearTimeout(), "stubbed", "clearTimeout was replaced");
+  equal(setInterval(), "stubbed", "setInterval was replaced");
+  equal(clearInterval(), "stubbed", "clearInterval was replaced");
+
+  equal(window.setTimeout(), "stubbed", "window.setTimeout was replaced too");
+
+  jstest.teardown();
+});

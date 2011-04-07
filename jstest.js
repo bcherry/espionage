@@ -1,12 +1,12 @@
 // Make these simply basic global vars, so IE doesn't throw when trying to reassign
-try {
-  setTimeout = setTimeout;
-} catch (e) {
-  eval("var setTimeout = (window.__proto__ || window.constructor.prototype).setTimeout,\
-            setInterval = (window.__proto__ || window.constructor.prototype).setInterval,\
-            clearTimeout = (window.__proto__ || window.constructor.prototype).clearTimeout,\
-            clearInterval = (window.__proto__ || window.constructor.prototype).clearInterval;");
-}
+// try {
+//   setTimeout = setTimeout;
+// } catch (e) {
+//   var setTimeout = (window.__proto__ || window.constructor.prototype).setTimeout,
+//       setInterval = (window.__proto__ || window.constructor.prototype).setInterval,
+//       clearTimeout = (window.__proto__ || window.constructor.prototype).clearTimeout,
+//       clearInterval = (window.__proto__ || window.constructor.prototype).clearInterval;
+// }
 
 var jstest = (function() {
   var hasBeenSetup = false,
@@ -108,7 +108,7 @@ var jstest = (function() {
   }
 
   function replaceGlobal(property, value) {
-    if (window.hasOwnProperty(property)) {
+    if (property in window) {
       windowProps[property] = window[property];
     }
 
@@ -120,7 +120,12 @@ var jstest = (function() {
       window[property] = windowProps[property];
       delete windowProps[property];
     } else {
-      delete window[property];
+      try {
+        delete window[property];
+      } catch (e) {
+        var undefined;
+        window[property] = undefined;
+      }
     }
   }
 
@@ -220,7 +225,12 @@ var jstest = (function() {
     },
 
     use: function() {
-    }
+    },
+
+    __originalSetTimeout: window.setTimeout,
+    __originalSetInterval: window.setInterval,
+    __originalClearTimeout: window.clearTimeout,
+    __originalClearInterval: window.clearInterval
   };
 
   each(globalInterface, function(prop, val) {
@@ -229,6 +239,17 @@ var jstest = (function() {
 
   return publicInterface;
 }());
+
+eval("var setTimeout, setInterval, clearTimeout, clearInterval;");
+setTimeout = jstest.__originalSetTimeout;
+setInterval = jstest.__originalSetInterval;
+clearTimeout = jstest.__originalClearTimeout;
+clearInterval = jstest.__originalClearInterval;
+
+delete jstest.__originalSetTimeout;
+delete jstest.__originalSetInterval;
+delete jstest.__originalClearTimeout;
+delete jstest.__originalClearInterval;
 
 /*
   spy - count calls to a function

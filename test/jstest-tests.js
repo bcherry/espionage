@@ -53,12 +53,23 @@ test("with conflicts", function() {
   equal(typeof mock, "number", "'mock' is restored globally after teardown");
   equal(typeof unmock, "number", "'unmock' is restored globally after teardown");
 
-  delete window.spy;
-  delete window.unspy;
-  delete window.stub;
-  delete window.unstub;
-  delete window.mock;
-  delete window.unmock;
+  var undefined;
+
+  try {
+    delete window.spy;
+    delete window.unspy;
+    delete window.stub;
+    delete window.unstub;
+    delete window.mock;
+    delete window.unmock;
+  } catch (e) {
+    window.spy = undefined;
+    window.unspy = undefined;
+    window.stub = undefined;
+    window.unstub = undefined;
+    window.mock = undefined;
+    window.unmock = undefined;
+  }
 });
 
 module("spy");
@@ -141,7 +152,12 @@ test("automatic spy attachment to globals", function() {
   equal(foo(1), 1, "foo still works");
   equal(typeof foo.calls, "undefined", "foo no longer has the calls attribute");
 
-  delete window.foo;
+  try {
+    delete window.foo;
+  } catch (e) {
+    var undefined;
+    window.foo = undefined;
+  }
 
   window.bar = {
     baz: function() {
@@ -225,7 +241,12 @@ test("automatic stub attachment to globals", function() {
 
   equal(foo.bar(5), 5, "unstubbing in global namespace worked");
 
-  delete window.foo;
+  try {
+    delete window.foo;
+  } catch (e) {
+    var undefined;
+    window.foo = undefined;
+  }
 });
 
 module("timecontrol");

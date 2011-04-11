@@ -1,23 +1,26 @@
-// Make these simply basic global vars, so IE doesn't throw when trying to reassign
-// try {
-//   setTimeout = setTimeout;
-// } catch (e) {
-//   var setTimeout = (window.__proto__ || window.constructor.prototype).setTimeout,
-//       setInterval = (window.__proto__ || window.constructor.prototype).setInterval,
-//       clearTimeout = (window.__proto__ || window.constructor.prototype).clearTimeout,
-//       clearInterval = (window.__proto__ || window.constructor.prototype).clearInterval;
-// }
+// So we can safely override these later
+// See: http://www.adequatelygood.com/2011/4/Replacing-setTimeout-Globally
+window.setTimeout = window.setTimeout;
+window.clearTimeout = window.clearTimeout;
+window.setInterval = window.setInterval;
+window.clearInterval = window.clearInterval;
 
 var jstest = (function() {
   var hasBeenSetup = false,
       windowProps = {},
       spiedFunctions = [],
-      stubbedFunctions = [];
+      stubbedFunctions = [],
+      timers = [],
+      globalTime = 0;
 
   var globalInterface = {
     spy: function(namespace, property) {
-      if (typeof namespace === "function" && typeof property == "undefined") {
-        return generateSpy(namespace);
+      if (typeof property == "undefined") {
+        if (typeof namespace === "function") {
+          return generateSpy(namespace);
+        } else if (typeof namespace === "undefined") {
+          return generateSpy();
+        }
       }
 
       var resolved = resolveNamespace(namespace, property);
@@ -72,10 +75,49 @@ var jstest = (function() {
     },
 
     unmock: function() {
+    },
+
+    wait: function(time) {
+      globalTime += time;
+
+      for (var i = 0; i < timers.length; i++) {
+        var timer = timers[i];
+        if (timer) {
+          if (timer.next <= globalTime) {
+            if (timer.repeat) {
+              do {
+                timer.fn.call();
+                timer.next += timer.time;
+              } while (timer.next <= globalTime);
+            } else {
+              timer.fn.call();
+              delete timer[i];
+            }
+          }
+        }
+      }
+    },
+
+    setTimeout: function(fn, time) {
+      return generateTimer(fn, time, false);
+    },
+
+    clearTimeout: function(id) {
+      return clearTimer(id);
+    },
+
+    setInterval: function(fn, time) {
+      return generateTimer(fn, time, true);
+    },
+
+    clearInterval: function(id) {
+      return clearTimer(id);
     }
   };
 
   function generateSpy(fn) {
+    fn = fn || function(){};
+
     function spied() {
       var args = Array.prototype.slice.apply(arguments),
           returned = fn.apply(this, args);
@@ -105,6 +147,24 @@ var jstest = (function() {
     });
 
     return stubbed;
+  }
+
+  function generateTimer(fn, time, repeat) {
+    if (typeof fn === "string") {
+      fn = new Function(fn);
+    }
+    timers.push({
+      fn: fn,
+      time: time,
+      next: globalTime + time,
+      repeat: repeat
+    });
+
+    return timers.length - 1;
+  }
+
+  function clearTimer(id) {
+    delete timers[id];
   }
 
   function replaceGlobal(property, value) {
@@ -185,23 +245,6 @@ var jstest = (function() {
         replaceGlobal(prop, val);
       });
 
-      replaceGlobal("setTimeout", function() {
-        return "stubbed";
-      });
-
-      replaceGlobal("clearTimeout", function() {
-        return "stubbed";
-      });
-
-      replaceGlobal("setInterval", function() {
-        return "stubbed";
-      });
-
-      replaceGlobal("clearInterval", function() {
-        return "stubbed";
-      });
-
-
       return true;
     },
 
@@ -216,21 +259,11 @@ var jstest = (function() {
         putGlobalBack(prop);
       });
 
-      putGlobalBack("setTimeout");
-      putGlobalBack("clearTimeout");
-      putGlobalBack("setInterval");
-      putGlobalBack("clearInterval");
-
       return true;
     },
 
     use: function() {
-    },
-
-    __originalSetTimeout: window.setTimeout,
-    __originalSetInterval: window.setInterval,
-    __originalClearTimeout: window.clearTimeout,
-    __originalClearInterval: window.clearInterval
+    }
   };
 
   each(globalInterface, function(prop, val) {
@@ -239,17 +272,6 @@ var jstest = (function() {
 
   return publicInterface;
 }());
-
-eval("var setTimeout, setInterval, clearTimeout, clearInterval;");
-setTimeout = jstest.__originalSetTimeout;
-setInterval = jstest.__originalSetInterval;
-clearTimeout = jstest.__originalClearTimeout;
-clearInterval = jstest.__originalClearInterval;
-
-delete jstest.__originalSetTimeout;
-delete jstest.__originalSetInterval;
-delete jstest.__originalClearTimeout;
-delete jstest.__originalClearInterval;
 
 /*
   spy - count calls to a function

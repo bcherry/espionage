@@ -259,13 +259,39 @@ var espionage = (function() {
   }
 
   function Mocker(original) {
+    var that = this;
+
     this._proxy = function() {
-      return original.apply(this, arguments);
+      var matched = false;
+      if (that._expectedArgs.length === arguments.length) {
+        matched = true;
+        for (var i = 0; i < arguments.length; i++) {
+          if (arguments[i] !== that._expectedArgs[i]) {
+            matched = false;
+          }
+        }
+      }
+
+      if (matched) {
+        return that._returnVal;
+      }
+
+      throw new espionage.UnexpectedInvocationError();
     };
   }
 
   Mocker.prototype = {
+    withArgs: function() {
+      this._expectedArgs = arguments;
 
+      return this;
+    },
+
+    returns: function(returnVal) {
+      this._returnVal = returnVal;
+
+      return this;
+    }
   };
 
   function createObject(proto) {
@@ -316,7 +342,9 @@ var espionage = (function() {
       espionage.setup();
       fn();
       espionage.teardown();
-    }
+    },
+
+    UnexpectedInvocationError: function(){}
   };
 
   each(globalInterface, function(prop, val) {

@@ -8,9 +8,16 @@ test("basic mocking", function() {
       }
     };
 
-    mock("foo.bar");
+    mock("foo.bar").withArgs(1).returns(3);
 
-    equal(foo.bar(1), 2, "foo.bar() still works after mocking");
+    equal(foo.bar(1), 3, "foo.bar(1) returns as mocked");
+
+    raises(function() {
+      foo.bar(2);
+    }, espionage.UnexpectedInvocationError, "unexpected invocation raises exception");
+
+
+
     // mock("foo.bar").withArgs(1, 2).returns(3);
     //
     // mock("foo.bar").withArgs(1, 2).returns(3).atLeastOnce();

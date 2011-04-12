@@ -31,3 +31,12 @@ test("with conflicts", function() {
     window.spy = undefined;
   }
 });
+
+test("use", function() {
+  expect(2);
+  jstest.use(function() {
+    equal(typeof spy, "function", "use sets things up");
+  });
+
+  equal(typeof spy, "undefined", "and then tears them down");
+});

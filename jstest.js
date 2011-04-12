@@ -262,7 +262,10 @@ var jstest = (function() {
       return true;
     },
 
-    use: function() {
+    use: function(fn) {
+      jstest.setup();
+      fn();
+      jstest.teardown();
     }
   };
 

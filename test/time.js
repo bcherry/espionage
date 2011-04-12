@@ -1,14 +1,14 @@
 module("time");
 
-asyncTest("the global setTimeout isn't screwed up by jstest's meddling", function() {
+asyncTest("the global setTimeout isn't screwed up by espionage's meddling", function() {
   setTimeout(function() {
     ok(true, "setTimeout isn't messed up");
 
     window.setTimeout(function() {
       ok(true, "and window.setTimeout works");
 
-      jstest.setup();
-      jstest.teardown();
+      espionage.setup();
+      espionage.teardown();
 
       setTimeout(function() {
         ok(true, "setTimeout still isn't messed up after a setup and a teardown");
@@ -24,7 +24,7 @@ asyncTest("the global setTimeout isn't screwed up by jstest's meddling", functio
 });
 
 test("you can control time", function() {
-  jstest.setup();
+  espionage.setup();
 
   var f = spy();
   setTimeout(f, 100);
@@ -78,13 +78,13 @@ test("you can control time", function() {
   equal(g.calls.length, 0, "with many timers, a long setTimeout works");
   equal(h.calls.length, 1, "with many timers, a shorter setTimeout works");
 
-  jstest.teardown();
+  espionage.teardown();
 });
 
 test("timer edge cases", function() {
   expect(1);
 
-  jstest.setup();
+  espionage.setup();
 
   var executed = 0;
 
@@ -92,5 +92,5 @@ test("timer edge cases", function() {
 
   wait(10);
 
-  jstest.teardown();
+  espionage.teardown();
 });

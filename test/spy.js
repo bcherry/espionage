@@ -1,7 +1,7 @@
 module("spy");
 
 test("basic spying and unspying", function() {
-  var foo = jstest.spy(function(a) {
+  var foo = espionage.spy(function(a) {
     return a;
   });
 
@@ -21,16 +21,16 @@ test("basic spying and unspying", function() {
 
   equal(foo(5), 5, "return value was passed through correctly");
 
-  foo = jstest.unspy(foo);
+  foo = espionage.unspy(foo);
 
   equal(foo(10), 10, "foo still works");
   equal(typeof foo.calls, "undefined", "foo no longer has the calls attribute");
 
-  foo = jstest.spy(foo);
+  foo = espionage.spy(foo);
 
   equal(foo.calls.length, 0, "after re-spying, foo has an empty calls array");
 
-  jstest.unspy(foo);
+  espionage.unspy(foo);
 });
 
 test("automatic spy attachment in namespace", function() {
@@ -41,12 +41,12 @@ test("automatic spy attachment in namespace", function() {
     _baz: 1
   };
 
-  jstest.spy(foo, "bar");
+  espionage.spy(foo, "bar");
 
   equal(foo.bar(), 1, "return value was passed");
   equal(foo.bar.calls.length, 1, "calls list is there");
 
-  jstest.unspy(foo, "bar");
+  espionage.unspy(foo, "bar");
 
   equal(foo.bar(), 1, "foo.bar still works after unspying");
   equal(typeof foo.bar.calls, "undefined", "foo.bar no longer has the calls attribute");
@@ -54,11 +54,11 @@ test("automatic spy attachment in namespace", function() {
   function baz(){};
   baz.foo = function() { return 1; };
 
-  jstest.spy(baz, "foo");
+  espionage.spy(baz, "foo");
   baz.foo();
   equal(baz.foo.calls.length, 1, "could do spy attachment when namespace is a function");
 
-  jstest.unspy(baz, "foo");
+  espionage.unspy(baz, "foo");
   equal(typeof baz.foo.calls, "undefined", "could unspy when namespace is a function");
 });
 
@@ -67,13 +67,13 @@ test("automatic spy attachment to globals", function() {
    return a;
   };
 
-  jstest.spy("foo");
+  espionage.spy("foo");
 
   foo();
 
   equal(foo.calls.length, 1, "foo has calls");
 
-  jstest.unspy("foo");
+  espionage.unspy("foo");
 
   equal(foo(1), 1, "foo still works");
   equal(typeof foo.calls, "undefined", "foo no longer has the calls attribute");
@@ -93,19 +93,19 @@ test("automatic spy attachment to globals", function() {
     _foo: 1
   };
 
-  jstest.spy("bar.baz");
+  espionage.spy("bar.baz");
 
   equal(bar.baz(), 1, "bar.baz works");
   equal(bar.baz.calls.length, 1, "bar.baz has been spied");
 
-  jstest.unspy("bar.baz");
+  espionage.unspy("bar.baz");
 
   equal(bar.baz(), 1, "bar.baz works after unspying");
   equal(typeof bar.baz.calls, "undefined", "bar.baz no long has the calls attribute");
 });
 
 test("spy with no args creates a generic anonymous spy", function() {
-  jstest.setup();
+  espionage.setup();
 
   var s = spy();
 
@@ -115,5 +115,5 @@ test("spy with no args creates a generic anonymous spy", function() {
 
   equal(s.calls.length, 1, "spy() is a spy");
 
-  jstest.teardown();
+  espionage.teardown();
 });

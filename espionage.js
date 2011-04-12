@@ -5,11 +5,12 @@ window.clearTimeout = window.clearTimeout;
 window.setInterval = window.setInterval;
 window.clearInterval = window.clearInterval;
 
-var jstest = (function() {
+var espionage = (function() {
   var hasBeenSetup = false,
       windowProps = {},
       spiedFunctions = [],
       stubbedFunctions = [],
+      mockedFunctions = [],
       timers = [],
       globalTime = 0;
 
@@ -71,7 +72,16 @@ var jstest = (function() {
       namespace[property] = findStubbed(namespace[property]).original;
     },
 
-    mock: function() {
+    mock: function(namespace, property) {
+      var resolved = resolveNamespace(namespace, property);
+
+      namespace = resolved.namespace;
+      property = resolved.property;
+
+      var mocker = generateMocker(namespace[property]);
+      namespace[property] = mocker._proxy;
+
+      return mocker;
     },
 
     unmock: function() {
@@ -149,6 +159,22 @@ var jstest = (function() {
     return stubbed;
   }
 
+  function generateMocker(original) {
+    var mocker = findMockerByProxy(original);
+    if (mocker) {
+      return mocker;
+    }
+
+    mocker = new Mocker(original);
+
+    mockedFunctions.push({
+      original: original,
+      mocker: mocker
+    });
+
+    return mocker;
+  }
+
   function generateTimer(fn, time, repeat) {
     if (typeof fn === "string") {
       fn = new Function(fn);
@@ -205,6 +231,14 @@ var jstest = (function() {
     }
   }
 
+  function findMockerByProxy(proxy) {
+    for (var i = 0; i < mockedFunctions.length; i++) {
+      if (mockedFunctions[i].mocker.proxy === proxy) {
+        return mockedFunctions[i];
+      }
+    }
+  }
+
   function resolveNamespace(namespace, property) {
     if (typeof namespace === "string") {
       property = namespace;
@@ -222,6 +256,22 @@ var jstest = (function() {
       namespace: namespace,
       property: property
     };
+  }
+
+  function Mocker(original) {
+    this._proxy = function() {
+      return original.apply(this, arguments);
+    };
+  }
+
+  Mocker.prototype = {
+
+  };
+
+  function createObject(proto) {
+    function F(){}
+    F.prototype = proto;
+    return new F();
   }
 
 
@@ -263,9 +313,9 @@ var jstest = (function() {
     },
 
     use: function(fn) {
-      jstest.setup();
+      espionage.setup();
       fn();
-      jstest.teardown();
+      espionage.teardown();
     }
   };
 
@@ -296,7 +346,7 @@ var jstest = (function() {
     - wait() to step into the future
     - flush() to clear all timers
 
-  test control - insert and remove jstest interface from global namespace
+  test control - insert and remove espionage interface from global namespace
     - use() to wrap a callback with automatic setup and teardown
     - setup() and teardown() to do it manually, or integrate with test framework
 

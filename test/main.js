@@ -3,11 +3,11 @@ module("setup and teardown");
 test("with no conflicts", function() {
   equal(typeof spy, "undefined", "'spy' is not available globally before setup");
 
-  jstest.setup();
+  espionage.setup();
 
   equal(typeof spy, "function", "'spy' is available globally after setup");
 
-  jstest.teardown();
+  espionage.teardown();
 
   equal(typeof spy, "undefined", "'spy' is not available globally after teardown");
 });
@@ -15,11 +15,11 @@ test("with no conflicts", function() {
 test("with conflicts", function() {
   window.spy = 1;
 
-  jstest.setup();
+  espionage.setup();
 
   equal(typeof spy, "function", "'spy' is overwritten globally after setup");
 
-  jstest.teardown();
+  espionage.teardown();
 
   equal(typeof spy, "number", "'spy' is restored globally after teardown");
 
@@ -34,7 +34,7 @@ test("with conflicts", function() {
 
 test("use", function() {
   expect(2);
-  jstest.use(function() {
+  espionage.use(function() {
     equal(typeof spy, "function", "use sets things up");
   });
 

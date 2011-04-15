@@ -18,7 +18,10 @@ test("basic mocking", function() {
 
 
 
-    // mock("foo.bar").withArgs(1, 2).returns(3);
+    // mock("foo.bar").withArgs(1, 2).returns(4);
+    //
+    // equal(foo.bar(1, 2), 4, "foo.bar(1, 2) returns as mocked");
+    // equal(foo.bar(1), 3, "foo.bar(1) still works too");
     //
     // mock("foo.bar").withArgs(1, 2).returns(3).atLeastOnce();
     // mock("foo.bar").withArgs(1, 2).returns(3).atLeast(1);

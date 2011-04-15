@@ -8,43 +8,59 @@
     namespace = resolved.namespace;
     property = resolved.property;
 
-    var mocker = generateMocker(namespace[property]);
+    var mocker = generateMocker(namespace, property);
     namespace[property] = mocker._proxy;
 
     return mocker;
   });
 
-  espionage.extend("unmock", function() {
+  espionage.extend("unmock", function(namespace, property) {
     var resolved = resolveNamespace(namespace, property);
 
     namespace = resolved.namespace;
     property = resolved.property;
 
-    var mocker = findMockerByProxy(namespace[property]);
+    var mock = findMockByProxy(namespace[property]);
 
-    if (mocker) {
-      if (mocker.atLeast && mocker.invocations < mocker.atLeast) {
-        throw new espionage.TooFewInvocationsError();
-      }
-
-      namespace[property] = mocker._original;
+    if (mock) {
+      teardownMock(mock);
     }
   });
 
-  function generateMocker(original) {
-    var mocker = findMockerByProxy(original);
-    if (mocker) {
-      return mocker;
+  espionage.extendTeardown(function() {
+    for (var i = 0; i < mockedFunctions.length; i++) {
+      teardownMock(mockedFunctions[i]);
     }
 
-    mocker = new Mocker(original);
+    mockedFunctions = [];
+  });
+
+  function generateMocker(namespace, property) {
+    var original = namespace[property],
+        mock = findMockByProxy(original);
+
+    if (mock) {
+      return mock.mocker;
+    }
+
+    var mocker = new Mocker(original);
 
     mockedFunctions.push({
       original: original,
-      mocker: mocker
+      mocker: mocker,
+      namespace: namespace,
+      property: property
     });
 
     return mocker;
+  }
+
+  function teardownMock(mock) {
+    if (mock.mocker.atLeast && mock.mocker.invocations < mock.mocker.atLeast) {
+      throw new espionage.TooFewInvocationsError();
+    }
+
+    mock.namespace[mock.property] = mock.original;
   }
 
 
@@ -56,7 +72,10 @@
 
       for (var i = 0; i < that._expectations.length; i++) {
         var expectation = that._expectations[i];
-        if (expectation.args.length === arguments.length) {
+
+        if (!expectation.args) {
+          matched = true;
+        } else if (expectation.args.length === arguments.length) {
           matched = true;
           for (var i = 0; i < arguments.length; i++) {
             if (arguments[i] !== expectation.args[i]) {
@@ -131,10 +150,10 @@
     }
   };
 
-  function findMockerByProxy(proxy) {
+  function findMockByProxy(proxy) {
     for (var i = 0; i < mockedFunctions.length; i++) {
       if (mockedFunctions[i].mocker._proxy === proxy) {
-        return mockedFunctions[i].mocker;
+        return mockedFunctions[i];
       }
     }
   }

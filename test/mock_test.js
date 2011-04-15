@@ -1,5 +1,28 @@
 module("mock");
 
+test("works with setup and teardown", function() {
+  var foo = { bar: function(){ return 1; } };
+
+  espionage.setup();
+
+  mock(foo, "bar").returns(2);
+
+  equal(foo.bar(), 2, "it mocked ok");
+
+  espionage.teardown();
+
+  equal(foo.bar(), 1, "unmocked after teardown");
+});
+
+test("unmock", function() {
+  var foo = { bar: function(){ return 1; } };
+
+  espionage.mock(foo, "bar").returns(2);
+  espionage.unmock(foo, "bar");
+
+  equal(foo.bar(), 1, "unmock worked fine");
+});
+
 test("reuses mockers when mocking twice", function() {
   window.foo = {bar: function(){}};
 

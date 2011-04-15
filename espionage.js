@@ -1,7 +1,8 @@
 var espionage = (function() {
   var hasBeenSetup = false,
       windowProps = {},
-      globalInterface = {};
+      globalInterface = {},
+      teardownExtensions = [];
 
   function replaceGlobal(property, value) {
     if (property in window) {
@@ -24,7 +25,6 @@ var espionage = (function() {
       }
     }
   }
-
 
   var publicInterface = {
     setup: function() {
@@ -52,6 +52,10 @@ var espionage = (function() {
         putGlobalBack(prop);
       });
 
+      for (var i = 0; i < teardownExtensions.length; i++) {
+        teardownExtensions[i]();
+      }
+
       return true;
     },
 
@@ -66,6 +70,10 @@ var espionage = (function() {
     extend: function(property, value) {
       globalInterface[property] = value;
       publicInterface[property] = value;
+    },
+
+    extendTeardown: function(fn) {
+      teardownExtensions.push(fn);
     },
 
     _util: {

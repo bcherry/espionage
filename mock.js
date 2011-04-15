@@ -20,8 +20,8 @@
     namespace = resolved.namespace;
     property = resolved.property;
 
-    var mock = findMockByProxy(namespace[property]);
-
+    var mock = findMockByProxy(namespace[property], true);
+      console.log("mock", mock);
     if (mock) {
       teardownMock(mock);
     }
@@ -56,8 +56,13 @@
   }
 
   function teardownMock(mock) {
-    if (mock.mocker.atLeast && mock.mocker.invocations < mock.mocker.atLeast) {
-      throw new espionage.TooFewInvocationsError();
+    var expectations = mock.mocker._expectations;
+
+    for (var i = 0; i < expectations.length; i++) {
+      var expectation = expectations[i];
+      if (expectation.atLeast && expectation.invocations < expectation.atLeast) {
+        throw new espionage.TooFewInvocationsError();
+      }
     }
 
     mock.namespace[mock.property] = mock.original;
@@ -150,10 +155,14 @@
     }
   };
 
-  function findMockByProxy(proxy) {
+  function findMockByProxy(proxy, remove) {
     for (var i = 0; i < mockedFunctions.length; i++) {
       if (mockedFunctions[i].mocker._proxy === proxy) {
-        return mockedFunctions[i];
+        var mock = mockedFunctions[i]
+        if (remove) {
+          mockedFunctions.splice(i, 1);
+        }
+        return mock;
       }
     }
   }

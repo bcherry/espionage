@@ -66,6 +66,7 @@ var espionage = (function() {
     },
 
     UnexpectedInvocationError: function(){},
+    TooFewInvocationsError: function(){},
 
     extend: function(property, value) {
       globalInterface[property] = value;

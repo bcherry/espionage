@@ -1,5 +1,13 @@
 module("mock");
 
+test("reuses mockers when mocking twice", function() {
+  window.foo = {bar: function(){}};
+
+  equal(espionage.mock("foo.bar"), espionage.mock("foo.bar"), "mock twice are equal");
+
+  delete window.foo;
+});
+
 test("basic mocking", function() {
   espionage.use(function() {
     window.foo = {
@@ -16,14 +24,42 @@ test("basic mocking", function() {
       foo.bar(2);
     }, espionage.UnexpectedInvocationError, "unexpected invocation raises exception");
 
+    mock("foo.bar").withArgs(1, 2).returns(4);
 
+    equal(foo.bar(1, 2), 4, "foo.bar(1, 2) returns as mocked");
+    equal(foo.bar(1), 3, "foo.bar(1) still works too");
 
-    // mock("foo.bar").withArgs(1, 2).returns(4);
-    //
-    // equal(foo.bar(1, 2), 4, "foo.bar(1, 2) returns as mocked");
-    // equal(foo.bar(1), 3, "foo.bar(1) still works too");
-    //
-    // mock("foo.bar").withArgs(1, 2).returns(3).atLeastOnce();
+    delete window.foo;
+  });
+});
+
+test("atMost", function() {
+  var foo = {
+    bar: function() {}
+  };
+
+  espionage.use(function() {
+    mock(foo, "bar").withArgs(1).returns(3).atMost(1);
+
+    foo.bar(1);
+
+    raises(function() {
+      foo.bar(1);
+    }, espionage.UnexpectedInvocationError, "second invocation raises");
+  });
+});
+
+test("atLeast", function() {
+  var foo = {
+    bar: function() {}
+  };
+
+  espionage.mock(foo, "bar").atLeast(1);
+
+  raises(function() {
+    espionage.unmock(foo, "bar");
+  }, espionage.TooFewInvocationsError, "unmocking without enough calls raises");
+});
     // mock("foo.bar").withArgs(1, 2).returns(3).atLeast(1);
     // mock("foo.bar").withArgs(1, 2).returns(3).atMost(10);
     // mock("foo.bar").withArgs(1, 2).returns(3).exactly(3);
@@ -44,9 +80,6 @@ test("basic mocking", function() {
     //   a.should == 1;
     // });
 
-    delete window.foo;
-  });
-});
 
 
   // withArgs

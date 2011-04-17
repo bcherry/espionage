@@ -24,15 +24,19 @@ test("unmock", function() {
 });
 
 test("reuses mockers when mocking twice", function() {
+  var undefined;
+
   window.foo = {bar: function(){}};
 
   equal(espionage.mock("foo.bar"), espionage.mock("foo.bar"), "mock twice are equal");
 
-  delete window.foo;
+  window.foo = undefined;
 });
 
 test("basic mocking", function() {
   espionage.use(function() {
+    var undefined;
+
     window.foo = {
       bar: function(a) {
         return a + 1;
@@ -52,7 +56,7 @@ test("basic mocking", function() {
     equal(foo.bar(1, 2), 4, "foo.bar(1, 2) returns as mocked");
     equal(foo.bar(1), 3, "foo.bar(1) still works too");
 
-    delete window.foo;
+    window.foo = undefined;
   });
 });
 

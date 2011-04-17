@@ -40,3 +40,46 @@ test("use", function() {
 
   equal(typeof spy, "undefined", "and then tears them down");
 });
+
+test("extendTeardown", function() {
+  var ranGood = false;
+  function good() {
+    ranGood = true;
+  }
+
+  function bad() {
+    throw "foo";
+  }
+
+  espionage.extendTeardown(good);
+
+  espionage.setup();
+  espionage.teardown();
+
+  equal(ranGood, true, "tearing down ran the new teardown function");
+
+  ranGood = false;
+
+  espionage.unextendTeardown(good);
+
+  espionage.setup();
+  espionage.teardown();
+
+  equal(ranGood, false, "unextending teardown stopped the new function from running");
+
+  ranGood = false;
+
+  espionage.extendTeardown(bad);
+  espionage.extendTeardown(good);
+
+  espionage.setup();
+
+  raises(function() {
+    espionage.teardown();
+  }, "foo", "teardown threw as expected");
+
+  equal(ranGood, true, "but the exception didn't stop the rest of the teardown from happening");
+
+  espionage.unextendTeardown(good);
+  espionage.unextendTeardown(bad);
+});

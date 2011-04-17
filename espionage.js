@@ -52,8 +52,19 @@ var espionage = (function() {
         putGlobalBack(prop);
       });
 
+      var caught;
       for (var i = 0; i < teardownExtensions.length; i++) {
-        teardownExtensions[i]();
+        try {
+          teardownExtensions[i]();
+        } catch (e) {
+          if (!caught) {
+            caught = e;
+          }
+        }
+      }
+
+      if (caught) {
+        throw caught;
       }
 
       return true;
@@ -75,6 +86,14 @@ var espionage = (function() {
 
     extendTeardown: function(fn) {
       teardownExtensions.push(fn);
+    },
+
+    unextendTeardown: function(fn) {
+      for (var i = 0; i < teardownExtensions.length; i++) {
+        if (teardownExtensions[i] === fn) {
+          teardownExtensions.splice(i, 1);
+        }
+      }
     },
 
     _util: {

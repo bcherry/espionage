@@ -21,18 +21,29 @@
     property = resolved.property;
 
     var mock = findMockByProxy(namespace[property], true);
-      console.log("mock", mock);
+
     if (mock) {
       teardownMock(mock);
     }
   });
 
   espionage.extendTeardown(function() {
+    var caught;
     for (var i = 0; i < mockedFunctions.length; i++) {
-      teardownMock(mockedFunctions[i]);
+      try {
+        teardownMock(mockedFunctions[i]);
+      } catch (e) {
+        if (!caught) {
+          caught = e;
+        }
+      }
     }
 
     mockedFunctions = [];
+
+    if (caught) {
+      throw caught;
+    }
   });
 
   function generateMocker(namespace, property) {
@@ -124,7 +135,8 @@
     withArgs: makeAnExpecterAndCall("withArgs"),
     returns: makeAnExpecterAndCall("returns"),
     atMost: makeAnExpecterAndCall("atMost"),
-    atLeast: makeAnExpecterAndCall("atLeast")
+    atLeast: makeAnExpecterAndCall("atLeast"),
+    exactly: makeAnExpecterAndCall("exactly")
   };
 
   function Expecter(mocker) {
@@ -148,10 +160,20 @@
 
     atMost: function(times) {
       this.expectation.atMost = times;
+
+      return this;
     },
 
     atLeast: function(times) {
       this.expectation.atLeast = times;
+
+      return this;
+    },
+
+    exactly: function(times) {
+      this.atMost(times).atLeast(times);
+
+      return this;
     }
   };
 

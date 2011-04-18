@@ -3,20 +3,23 @@ espionage.extend("stub", function(e) {
       resolveNamespace = espionage._util.resolveNamespace;
 
   e.extendGlobals("stub", function(namespace, property, value) {
-    if (typeof namespace === "function" && typeof property == "function") {
-      return generateStub(namespace, property);
-    }
-
-    if (typeof property === "function" && typeof value === "undefined") {
+    if (typeof namespace === "string") {
       value = property;
-      property = undefined;
+      property = namespace;
+      namespace = window;
     }
-
     var resolved = resolveNamespace(namespace, property);
     namespace = resolved.namespace;
     property = resolved.property;
 
-    namespace[property] = generateStub(namespace[property], value);
+    stubbedFunctions.push({
+      original: namespace[property],
+      stubbed: value,
+      namespace: namespace,
+      property: property
+    });
+
+    namespace[property] = value;
   });
 
   e.extendGlobals("unstub", function(namespace, property) {
@@ -31,15 +34,14 @@ espionage.extend("stub", function(e) {
     namespace[property] = findStubbed(namespace[property]).original;
   });
 
+  e.extendTeardown(function() {
+    for (var i = 0; i < stubbedFunctions.length; i++) {
+      var stubbed = stubbedFunctions[i];
 
-  function generateStub(original, stubbed) {
-    stubbedFunctions.push({
-      original: original,
-      stubbed: stubbed
-    });
+      stubbed.namespace[stubbed.property] = stubbed.original;
+    }
+  });
 
-    return stubbed;
-  }
 
   function findStubbed(stubbed) {
     for (var i = 0; i < stubbedFunctions.length; i++) {

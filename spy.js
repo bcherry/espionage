@@ -15,7 +15,7 @@ espionage.extend("spy", function(e) {
     namespace = resolved.namespace;
     property = resolved.property;
 
-    namespace[property] = generateSpy(namespace[property]);
+    namespace[property] = generateSpy(namespace[property], namespace, property);
   });
 
   e.extendGlobals("unspy", function(namespace, property) {
@@ -30,7 +30,18 @@ espionage.extend("spy", function(e) {
     namespace[property] = findSpied(namespace[property]).original;
   });
 
-  function generateSpy(fn) {
+  e.extendTeardown(function() {
+    for (var i = 0; i < spiedFunctions.length; i++) {
+      var spied = spiedFunctions[i];
+      if (spied.namespace) {
+        spied.namespace[spied.property] = spied.original;
+      }
+    }
+
+    spiedFunctions = [];
+  });
+
+  function generateSpy(fn, namespace, property) {
     fn = fn || function(){};
 
     function spied() {
@@ -49,7 +60,9 @@ espionage.extend("spy", function(e) {
 
     spiedFunctions.push({
       spied: spied,
-      original: fn
+      original: fn,
+      namespace: namespace,
+      property: property
     });
 
     return spied;

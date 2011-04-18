@@ -68,6 +68,8 @@ test("automatic spy attachment in namespace", function() {
 
 test("automatic spy attachment to globals", function() {
   espionage.use(function() {
+    var undefined;
+
     window.foo = function(a) {
      return a;
     };
@@ -83,12 +85,7 @@ test("automatic spy attachment to globals", function() {
     equal(foo(1), 1, "foo still works");
     equal(typeof foo.calls, "undefined", "foo no longer has the calls attribute");
 
-    try {
-      delete window.foo;
-    } catch (e) {
-      var undefined;
-      window.foo = undefined;
-    }
+    window.foo = undefined;
 
     window.bar = {
       baz: function() {
@@ -107,6 +104,8 @@ test("automatic spy attachment to globals", function() {
 
     equal(bar.baz(), 1, "bar.baz works after unspying");
     equal(typeof bar.baz.calls, "undefined", "bar.baz no long has the calls attribute");
+
+    window.bar = undefined;
   });
 });
 
@@ -124,5 +123,18 @@ test("spy with no args creates a generic anonymous spy", function() {
 });
 
 test("all spies are unspied during teardown", function() {
-  ok(false, "TODO");
+  var undefined;
+
+  window.foo = function(){};
+  espionage.setup();
+
+  spy("foo");
+
+  equal(typeof foo.calls, "object", "foo is spied");
+
+  espionage.teardown();
+
+  equal(typeof foo.calls, "undefined", "foo was unspied");
+
+  window.foo = undefined;
 });

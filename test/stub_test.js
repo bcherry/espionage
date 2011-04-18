@@ -1,30 +1,6 @@
 module("stub");
 
-test("basic stubbing and unstubbing", function() {
-  espionage.use(function() {
-    var foo = stub(function(x) {
-      return x;
-    }, function(x) {
-      return x + 1;
-    });
-
-    equal(foo(1), 2, "stubbed a function reference");
-
-    foo = unstub(foo);
-
-    equal(foo(1), 1, "function reference was unstubbed");
-
-    foo = stub(foo, function() {
-      return 3;
-    });
-
-    equal(foo(), 3, "function could be re-stubbed");
-
-    unstub(foo);
-  });
-});
-
-test("automatic stub attachment in namespace", function() {
+test("stubbing/unstubbing in namespaces", function() {
   espionage.use(function() {
     var foo = {
       bar: function(x) {
@@ -46,8 +22,9 @@ test("automatic stub attachment in namespace", function() {
   });
 });
 
-test("automatic stub attachment to globals", function() {
+test("stubbing/unstubbing in globals", function() {
   espionage.use(function() {
+    var undefined;
     window.foo = {
       bar: function(x) {
         return x;
@@ -66,15 +43,23 @@ test("automatic stub attachment to globals", function() {
 
     equal(foo.bar(5), 5, "unstubbing in global namespace worked");
 
-    try {
-      delete window.foo;
-    } catch (e) {
-      var undefined;
-      window.foo = undefined;
-    }
+    window.foo = undefined;
   });
 });
 
 test("stubs are unstubbed during teardown", function() {
-  ok(false, "TODO");
+  var undefined;
+  window.foo = function(){ return 1; };
+
+  espionage.setup();
+
+  stub("foo", function() { return 2; });
+
+  equal(foo(), 2, "foo got stubbed");
+
+  espionage.teardown();
+
+  equal(foo(), 1, "foo got unstubbed by teardown");
+
+  window.foo = undefined;
 });

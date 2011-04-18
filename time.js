@@ -5,12 +5,12 @@ window.clearTimeout = window.clearTimeout;
 window.setInterval = window.setInterval;
 window.clearInterval = window.clearInterval;
 
-(function(espionage) {
+espionage.extend("time", function(e) {
   var timers = [],
       globalTime = 0,
       resolveNamespace = espionage._util.resolveNamespace;
 
-  espionage.extend("wait", function(time) {
+  e.extendGlobals("wait", function(time) {
     globalTime += time;
 
     for (var i = 0; i < timers.length; i++) {
@@ -31,19 +31,19 @@ window.clearInterval = window.clearInterval;
     }
   });
 
-  espionage.extend("setTimeout", function(fn, time) {
+  e.extendGlobals("setTimeout", function(fn, time) {
     return generateTimer(fn, time, false);
   });
 
-  espionage.extend("clearTimeout", function(id) {
+  e.extendGlobals("clearTimeout", function(id) {
     return clearTimer(id);
   });
 
-  espionage.extend("setInterval", function(fn, time) {
+  e.extendGlobals("setInterval", function(fn, time) {
     return generateTimer(fn, time, true);
   });
 
-  espionage.extend("clearInterval", function(id) {
+  e.extendGlobals("clearInterval", function(id) {
     return clearTimer(id);
   });
 
@@ -65,4 +65,4 @@ window.clearInterval = window.clearInterval;
     delete timers[id];
   }
 
-}(espionage));
+});

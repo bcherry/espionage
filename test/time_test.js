@@ -24,73 +24,70 @@ asyncTest("the global setTimeout isn't screwed up by espionage's meddling", func
 });
 
 test("you can control time", function() {
-  espionage.setup();
+  espionage.use(function() {
+    var f = spy();
+    setTimeout(f, 100);
 
-  var f = spy();
-  setTimeout(f, 100);
+    wait(50);
+    equal(f.calls.length, 0, "f hasn't been called after waiting 50");
 
-  wait(50);
-  equal(f.calls.length, 0, "f hasn't been called after waiting 50");
+    wait(50);
+    equal(f.calls.length, 1, "f was called once after waiting another 50");
 
-  wait(50);
-  equal(f.calls.length, 1, "f was called once after waiting another 50");
+    f = spy();
+    var t = setTimeout(f, 100);
+    clearTimeout(t);
 
-  f = spy();
-  var t = setTimeout(f, 100);
-  clearTimeout(t);
+    wait(100);
+    equal(f.calls.length, 0, "f didn't called when clearTimeout was used");
 
-  wait(100);
-  equal(f.calls.length, 0, "f didn't called when clearTimeout was used");
+    f = spy();
+    t = setInterval(f, 10);
+    equal(f.calls.length, 0, "f wasn't called after setInterval");
 
-  f = spy();
-  t = setInterval(f, 10);
-  equal(f.calls.length, 0, "f wasn't called after setInterval");
+    wait(10);
+    equal(f.calls.length, 1, "f was called once after 10");
 
-  wait(10);
-  equal(f.calls.length, 1, "f was called once after 10");
+    wait(10);
+    equal(f.calls.length, 2, "f was called after another 10");
 
-  wait(10);
-  equal(f.calls.length, 2, "f was called after another 10");
+    wait(9);
+    equal(f.calls.length, 2, "f was not called a third time after 9 more");
 
-  wait(9);
-  equal(f.calls.length, 2, "f was not called a third time after 9 more");
+    wait(1);
+    equal(f.calls.length, 3, "f was called a third time after 1 more");
 
-  wait(1);
-  equal(f.calls.length, 3, "f was called a third time after 1 more");
+    wait(30);
+    equal(f.calls.length, 6, "f was called three more times after 30 more");
 
-  wait(30);
-  equal(f.calls.length, 6, "f was called three more times after 30 more");
+    clearInterval(t);
 
-  clearInterval(t);
+    wait(50);
+    equal(f.calls.length, 6, "but f wasn't called anymore after clearInterval");
 
-  wait(50);
-  equal(f.calls.length, 6, "but f wasn't called anymore after clearInterval");
+    f = spy();
+    g = spy();
+    h = spy();
+    setInterval(f, 10);
+    setTimeout(g, 100);
+    setTimeout(h, 50);
 
-  f = spy();
-  g = spy();
-  h = spy();
-  setInterval(f, 10);
-  setTimeout(g, 100);
-  setTimeout(h, 50);
-
-  wait(50);
-  equal(f.calls.length, 5, "with many timers, setInterval works");
-  equal(g.calls.length, 0, "with many timers, a long setTimeout works");
-  equal(h.calls.length, 1, "with many timers, a shorter setTimeout works");
-
-  espionage.teardown();
+    wait(50);
+    equal(f.calls.length, 5, "with many timers, setInterval works");
+    equal(g.calls.length, 0, "with many timers, a long setTimeout works");
+    equal(h.calls.length, 1, "with many timers, a shorter setTimeout works");
+  });
 });
 
 test("timer edge cases", function() {
-  expect(1);
+  espionage.use(function() {
+    expect(1);
 
-  espionage.setup();
+    var executed = 0;
 
-  var executed = 0;
+    setTimeout("ok(true, 'calling setTimeout with a string worked');", 10);
 
-  setTimeout("ok(true, 'calling setTimeout with a string worked');", 10);
+    wait(10);
 
-  wait(10);
-
-  espionage.teardown();
+  });
 });

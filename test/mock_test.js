@@ -3,34 +3,36 @@ module("mock");
 test("works with setup and teardown", function() {
   var foo = { bar: function(){ return 1; } };
 
-  espionage.setup();
+  espionage.use(function() {
+    mock(foo, "bar").returns(2);
 
-  mock(foo, "bar").returns(2);
-
-  equal(foo.bar(), 2, "it mocked ok");
-
-  espionage.teardown();
+    equal(foo.bar(), 2, "it mocked ok");
+  });
 
   equal(foo.bar(), 1, "unmocked after teardown");
 });
 
 test("unmock", function() {
-  var foo = { bar: function(){ return 1; } };
+  espionage.use(function() {
+    var foo = { bar: function(){ return 1; } };
 
-  espionage.mock(foo, "bar").returns(2);
-  espionage.unmock(foo, "bar");
+    mock(foo, "bar").returns(2);
+    unmock(foo, "bar");
 
-  equal(foo.bar(), 1, "unmock worked fine");
+    equal(foo.bar(), 1, "unmock worked fine");
+  });
 });
 
 test("reuses mockers when mocking twice", function() {
-  var undefined;
+  espionage.use(function() {
+    var undefined;
 
-  window.foo = {bar: function(){}};
+    window.foo = {bar: function(){}};
 
-  equal(espionage.mock("foo.bar"), espionage.mock("foo.bar"), "mock twice are equal");
+    equal(mock("foo.bar"), mock("foo.bar"), "mock twice are equal");
 
-  window.foo = undefined;
+    window.foo = undefined;
+  });
 });
 
 test("basic mocking", function() {
@@ -61,11 +63,11 @@ test("basic mocking", function() {
 });
 
 test("atMost", function() {
-  var foo = {
-    bar: function() {}
-  };
-
   espionage.use(function() {
+    var foo = {
+      bar: function() {}
+    };
+
     mock(foo, "bar").withArgs(1).returns(3).atMost(1);
 
     foo.bar(1);
@@ -77,26 +79,27 @@ test("atMost", function() {
 });
 
 test("atLeast", function() {
-  var foo = {
-    bar: function() {}
-  };
+  espionage.use(function() {
+    var foo = {
+      bar: function() {}
+    };
 
-  espionage.mock(foo, "bar").atLeast(1).returns(1);
+    mock(foo, "bar").atLeast(1).returns(1);
 
-  raises(function() {
-    espionage.unmock(foo, "bar");
-  }, espionage.TooFewInvocationsError, "unmocking without enough calls raises");
-
+    raises(function() {
+      unmock(foo, "bar");
+    }, espionage.TooFewInvocationsError, "unmocking without enough calls raises");
+  });
 });
 
 test("exactly", function() {
+  espionage.setup();
+
   var foo = {
     bar: function() {return 1;},
     baz: function() {return 1;},
     foo: function() {return 1;}
   };
-
-  espionage.setup();
 
   mock(foo, "bar").withArgs(1).exactly(2).returns(2);
   mock(foo, "bar").withArgs(0).exactly(0).returns(2);

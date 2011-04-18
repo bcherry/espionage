@@ -1,8 +1,8 @@
-(function(espionage) {
+espionage.extend("stub", function(e) {
   var stubbedFunctions = [],
       resolveNamespace = espionage._util.resolveNamespace;
 
-  espionage.extend("stub", function(namespace, property, value) {
+  e.extendGlobals("stub", function(namespace, property, value) {
     if (typeof namespace === "function" && typeof property == "function") {
       return generateStub(namespace, property);
     }
@@ -19,7 +19,7 @@
     namespace[property] = generateStub(namespace[property], value);
   });
 
-  espionage.extend("unstub", function(namespace, property) {
+  e.extendGlobals("unstub", function(namespace, property) {
     if (typeof namespace === "function" && typeof property == "undefined") {
       return findStubbed(namespace).original;
     }
@@ -49,4 +49,4 @@
     }
   }
 
-}(espionage));
+});

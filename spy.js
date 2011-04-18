@@ -1,8 +1,8 @@
-(function(espionage) {
+espionage.extend("spy", function(e) {
   var spiedFunctions = [],
       resolveNamespace = espionage._util.resolveNamespace;
 
-  espionage.extend("spy", function(namespace, property) {
+  e.extendGlobals("spy", function(namespace, property) {
     if (typeof property == "undefined") {
       if (typeof namespace === "function") {
         return generateSpy(namespace);
@@ -18,7 +18,7 @@
     namespace[property] = generateSpy(namespace[property]);
   });
 
-  espionage.extend("unspy", function(namespace, property) {
+  e.extendGlobals("unspy", function(namespace, property) {
     if (typeof namespace === "function" && typeof property == "undefined") {
       return findSpied(namespace).original;
     }
@@ -63,4 +63,4 @@
     }
   }
 
-}(espionage));
+});

@@ -1,8 +1,7 @@
 var espionage = (function() {
   var hasBeenSetup = false,
       windowProps = {},
-      globalInterface = {},
-      teardownExtensions = [];
+      extensions = {};
 
   function replaceGlobal(property, value) {
     if (property in window) {
@@ -26,6 +25,49 @@ var espionage = (function() {
     }
   }
 
+  function each(obj, fn) {
+    for (var prop in obj) {
+      if (obj.hasOwnProperty(prop)) {
+        fn(prop, obj[prop]);
+      }
+    }
+  }
+
+  function eachWithExceptions(obj, fn) {
+    var caught;
+
+    each(obj, function(prop, val) {
+      try {
+        fn.call(this, prop, val);
+      } catch (e) {
+        if (!caught) {
+          caught = e;
+        }
+      }
+    });
+
+    if (caught) {
+      throw caught;
+    }
+  }
+
+  function allWithExceptions(functions) {
+    var caught;
+    for (var i = 0; i < functions.length; i++) {
+      try {
+        functions[i].call();
+      } catch (e) {
+        if (!caught) {
+          caught = e;
+        }
+      }
+    }
+
+    if (caught) {
+      throw caught;
+    }
+  }
+
   var publicInterface = {
     setup: function() {
       if (hasBeenSetup) {
@@ -34,8 +76,12 @@ var espionage = (function() {
 
       hasBeenSetup = true;
 
-      espionage._util.each(globalInterface, function(prop, val) {
-        replaceGlobal(prop, val);
+      eachWithExceptions(extensions, function(name, extension) {
+        each(extension.globals, function(prop, val) {
+          replaceGlobal(prop, val);
+        });
+
+        allWithExceptions(extension.setups);
       });
 
       return true;
@@ -48,24 +94,13 @@ var espionage = (function() {
 
       hasBeenSetup = false;
 
-      espionage._util.each(globalInterface, function(prop, val) {
-        putGlobalBack(prop);
+      eachWithExceptions(extensions, function(name, extension) {
+        each(extension.globals, function(prop, val) {
+          putGlobalBack(prop, val);
+        });
+
+        allWithExceptions(extension.teardowns);
       });
-
-      var caught;
-      for (var i = 0; i < teardownExtensions.length; i++) {
-        try {
-          teardownExtensions[i]();
-        } catch (e) {
-          if (!caught) {
-            caught = e;
-          }
-        }
-      }
-
-      if (caught) {
-        throw caught;
-      }
 
       return true;
     },
@@ -79,21 +114,19 @@ var espionage = (function() {
     UnexpectedInvocationError: function(){},
     TooFewInvocationsError: function(){},
 
-    extend: function(property, value) {
-      globalInterface[property] = value;
-      publicInterface[property] = value;
-    },
-
-    extendTeardown: function(fn) {
-      teardownExtensions.push(fn);
-    },
-
-    unextendTeardown: function(fn) {
-      for (var i = 0; i < teardownExtensions.length; i++) {
-        if (teardownExtensions[i] === fn) {
-          teardownExtensions.splice(i, 1);
-        }
+    extend: function(name, callback) {
+      if (extensions[name]) {
+        return extensions[name];
       }
+
+      var extender = new Extender();
+      extensions[name] = extender;
+
+      callback(extender);
+    },
+
+    unextend: function(name) {
+      delete extensions[name];
     },
 
     _util: {
@@ -116,13 +149,27 @@ var espionage = (function() {
         };
       },
 
-      each: function(obj, fn) {
-        for (var prop in obj) {
-          if (obj.hasOwnProperty(prop)) {
-            fn(prop, obj[prop]);
-          }
-        }
-      }
+      each: each
+    }
+  };
+
+  function Extender() {
+    this.globals = {};
+    this.setups = [];
+    this.teardowns = [];
+  }
+
+  Extender.prototype = {
+    extendGlobals: function(name, property) {
+      this.globals[name] = property;
+    },
+
+    extendSetup: function(fn) {
+      this.setups.push(fn);
+    },
+
+    extendTeardown: function(fn) {
+      this.teardowns.push(fn);
     }
   };
 

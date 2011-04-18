@@ -1,8 +1,8 @@
-(function(espionage) {
+espionage.extend("mock", function(e) {
   var mockedFunctions = [],
       resolveNamespace = espionage._util.resolveNamespace;
 
-  espionage.extend("mock", function(namespace, property) {
+  e.extendGlobals("mock", function(namespace, property) {
     var resolved = resolveNamespace(namespace, property);
 
     namespace = resolved.namespace;
@@ -14,7 +14,7 @@
     return mocker;
   });
 
-  espionage.extend("unmock", function(namespace, property) {
+  e.extendGlobals("unmock", function(namespace, property) {
     var resolved = resolveNamespace(namespace, property);
 
     namespace = resolved.namespace;
@@ -27,7 +27,7 @@
     }
   });
 
-  espionage.extendTeardown(function() {
+  e.extendTeardown(function() {
     var caught;
     for (var i = 0; i < mockedFunctions.length; i++) {
       try {
@@ -189,4 +189,4 @@
     }
   }
 
-}(espionage));
+});

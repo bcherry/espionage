@@ -1,85 +1,150 @@
-module("setup and teardown");
+module("espionage");
 
-test("with no conflicts", function() {
-  equal(typeof spy, "undefined", "'spy' is not available globally before setup");
+test("use", function() {
+  var oldSetup = espionage.setup,
+      oldTeardown = espionage.teardown,
+      setup = false,
+      teardown = false;
 
-  espionage.setup();
+  espionage.setup = function() {
+    setup = true;
+  };
 
-  equal(typeof spy, "function", "'spy' is available globally after setup");
+  espionage.teardown = function() {
+    teardown = true;
+  };
 
-  espionage.teardown();
+  espionage.use(function() {
+    equal(setup, true, "use set things up");
+    equal(teardown, false, "without tearing them down");
+  });
+  equal(teardown, true, "but eventually it tore them down");
 
-  equal(typeof spy, "undefined", "'spy' is not available globally after teardown");
+  espionage.setup = oldSetup;
+  espionage.teardown = oldTeardown;
 });
 
-test("with conflicts", function() {
-  window.spy = 1;
+test("extend", function() {
+  var fooRun, fooSetup, fooTeardown;
+
+  espionage.extend("foo", function(e) {
+    e.extendGlobals("foo", function() {
+      fooRun = true;
+    });
+
+    e.extendSetup(function() {
+      fooSetup = true;
+    });
+
+    e.extendTeardown(function() {
+      fooTeardown = true;
+    });
+  });
+
+  espionage.setup();
+  equal(fooSetup, true, "foo's setup extension was run");
+
+  window.foo();
+  equal(fooRun, true, "foo() was run");
+
+  espionage.teardown();
+  equal(fooTeardown, true, "foo's teardown extension was run");
+
+  espionage.unextend("foo");
+});
+
+test("unextend", function() {
+  var fooSetup = false, fooTeardown = false;
+  espionage.extend("foo", function(e) {
+    e.extendGlobals("foo", function() {});
+
+    e.extendSetup(function() {
+      fooSetup = true;
+    });
+
+    e.extendTeardown(function() {
+      fooTeardown = true;
+    });
+  });
+  espionage.unextend("foo");
+
+  espionage.setup();
+  equal(fooSetup, false, "fooSetup was not run");
+
+  equal(typeof window.foo, "undefined", "foo was removed from globals");
+
+  espionage.teardown();
+  equal(fooTeardown, false, "fooTeardown was not run");
+
+  espionage.unextend("foo");
+});
+
+test("extend with global conflicts", function() {
+  window.foo = 1;
+
+  espionage.extend("foo", function(e) {
+    e.extendGlobals("foo", function() {});
+  });
 
   espionage.setup();
 
-  equal(typeof spy, "function", "'spy' is overwritten globally after setup");
+  equal(typeof foo, "function", "'foo' is overwritten globally after setup");
 
   espionage.teardown();
 
-  equal(typeof spy, "number", "'spy' is restored globally after teardown");
+  equal(typeof foo, "number", "'foo' is restored globally after teardown");
 
   var undefined;
 
-  try {
-    delete window.spy;
-  } catch (e) {
-    window.spy = undefined;
-  }
+  window.foo = undefined;
+
+  espionage.unextend("foo");
 });
 
-test("use", function() {
-  expect(2);
-  espionage.use(function() {
-    equal(typeof spy, "function", "use sets things up");
+test("extend with exceptions", function() {
+  var fooSetup = false,
+      fooTeardown = false,
+      barSetup = false,
+      barTeardown = false;
+
+  espionage.extend("foo", function(e) {
+    e.extendSetup(function() {
+      fooSetup = true;
+      throw "setup exception";
+    });
+
+    e.extendTeardown(function() {
+      fooTeardown = true;
+      throw "teardown exception";
+    });
   });
 
-  equal(typeof spy, "undefined", "and then tears them down");
-});
+  espionage.extend("bar", function(e) {
+    e.extendSetup(function() {
+      barSetup = true;
+      throw "setup exception";
+    });
 
-test("extendTeardown", function() {
-  var ranGood = false;
-  function good() {
-    ranGood = true;
-  }
+    e.extendTeardown(function() {
+      barTeardown = true;
+      throw "teardown exception";
+    });
+  });
 
-  function bad() {
-    throw "foo";
-  }
+  raises(function() {
+    espionage.setup();
+  }, /^setup exception$/, "setup threw the exception");
 
-  espionage.extendTeardown(good);
-
-  espionage.setup();
-  espionage.teardown();
-
-  equal(ranGood, true, "tearing down ran the new teardown function");
-
-  ranGood = false;
-
-  espionage.unextendTeardown(good);
-
-  espionage.setup();
-  espionage.teardown();
-
-  equal(ranGood, false, "unextending teardown stopped the new function from running");
-
-  ranGood = false;
-
-  espionage.extendTeardown(bad);
-  espionage.extendTeardown(good);
-
-  espionage.setup();
+  equal(fooSetup, true, "foo's setup completed despite the exception");
+  equal(barSetup, true, "bar's setup completed despite the exception");
 
   raises(function() {
     espionage.teardown();
-  }, "foo", "teardown threw as expected");
+  }, /^teardown exception$/, "teardown threw the exception");
 
-  equal(ranGood, true, "but the exception didn't stop the rest of the teardown from happening");
+  equal(fooTeardown, true, "foo's teardown completed despite the exception");
+  equal(barTeardown, true, "bar's teardown completed despite the exception");
 
-  espionage.unextendTeardown(good);
-  espionage.unextendTeardown(bad);
+  espionage.unextend("foo");
+  espionage.unextend("bar");
 });

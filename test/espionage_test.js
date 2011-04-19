@@ -148,3 +148,28 @@ test("extend with exceptions", function() {
   espionage.unextend("foo");
   espionage.unextend("bar");
 });
+
+test("setup with module list", function() {
+  espionage.setup({
+    time: false,
+    spy: false
+  });
+
+  equal(typeof wait, "undefined", "did not get the wait method");
+  equal(typeof spy, "undefined", "did not get the spy method");
+  equal(typeof mock, "function", "got the mock method");
+
+  espionage.teardown();
+});
+
+test("use with module list", function() {
+  espionage.use({
+    time: false,
+    spy: false
+  }, function() {
+
+    equal(typeof wait, "undefined", "did not get the wait method");
+    equal(typeof spy, "undefined", "did not get the spy method");
+    equal(typeof mock, "function", "got the mock method");
+  });
+});

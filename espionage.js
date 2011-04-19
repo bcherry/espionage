@@ -1,5 +1,5 @@
 var espionage = (function() {
-  var hasBeenSetup = false,
+  var setupModules = false,
       windowProps = {},
       extensions = {};
 
@@ -69,14 +69,21 @@ var espionage = (function() {
   }
 
   var publicInterface = {
-    setup: function() {
-      if (hasBeenSetup) {
+    setup: function(modules) {
+      if (setupModules) {
         return false;
       }
 
-      hasBeenSetup = true;
+      modules = modules || {};
+
+      setupModules = modules;
 
       eachWithExceptions(extensions, function(name, extension) {
+        if (modules[name] === false) {
+          console.log("skipping setup for ", name);
+          return;
+        }
+
         each(extension.globals, function(prop, val) {
           replaceGlobal(prop, val);
         });
@@ -88,13 +95,19 @@ var espionage = (function() {
     },
 
     teardown: function() {
-      if (!hasBeenSetup) {
+      if (!setupModules) {
         return false;
       }
 
-      hasBeenSetup = false;
+      var modules = setupModules;
+      setupModules = false;
 
       eachWithExceptions(extensions, function(name, extension) {
+        if (modules[name] === false) {
+          console.log("skipping teardown for ", name);
+          return;
+        }
+
         each(extension.globals, function(prop, val) {
           putGlobalBack(prop, val);
         });
@@ -105,8 +118,12 @@ var espionage = (function() {
       return true;
     },
 
-    use: function(fn) {
-      espionage.setup();
+    use: function(modules, fn) {
+      if (typeof fn === "undefined" && typeof modules === "function") {
+        fn = modules;
+        modules = undefined;
+      }
+      espionage.setup(modules);
       fn();
       espionage.teardown();
     },

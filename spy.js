@@ -30,6 +30,16 @@ espionage.extend("spy", function(e) {
     namespace[property] = findSpied(namespace[property]).original;
   });
 
+  e.extendGlobals("debrief", function(spy) {
+    var spy = findSpied(spy);
+
+    if (spy) {
+      return spy.data;
+    }
+
+    return false;
+  });
+
   e.extendTeardown(function() {
     for (var i = 0; i < spiedFunctions.length; i++) {
       var spied = spiedFunctions[i];
@@ -48,7 +58,7 @@ espionage.extend("spy", function(e) {
       var args = Array.prototype.slice.apply(arguments),
           returned = fn.apply(this, args);
 
-      spied.calls.push({
+      data.calls.push({
         arguments: args,
         returned: returned
       });
@@ -56,13 +66,16 @@ espionage.extend("spy", function(e) {
       return returned;
     }
 
-    spied.calls = [];
+    var data = {};
+
+    data.calls = [];
 
     spiedFunctions.push({
       spied: spied,
       original: fn,
       namespace: namespace,
-      property: property
+      property: property,
+      data: data
     });
 
     return spied;

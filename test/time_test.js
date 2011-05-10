@@ -34,12 +34,12 @@ test("you can control time", function() {
     wait(50);
     equal(debrief(f).calls.length, 1, "f was called once after waiting another 50");
 
-    f = spy();
     var t = setTimeout(f, 100);
+
     clearTimeout(t);
 
     wait(100);
-    equal(debrief(f).calls.length, 0, "f didn't called when clearTimeout was used");
+    equal(debrief(f).calls.length, 1, "f didn't called again when clearTimeout was used");
 
     f = spy();
     t = setInterval(f, 10);

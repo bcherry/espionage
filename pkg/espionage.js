@@ -542,6 +542,7 @@ espionage.extend("stub", function(e) {
 
       stubbed.namespace[stubbed.property] = stubbed.original;
     }
+    stubbedFunctions = [];
   });
 
 

@@ -63,3 +63,18 @@ test("stubs are unstubbed during teardown", function() {
 
   window.foo = undefined;
 });
+
+test("stubs are fully undone in the right order", function() {
+  var foo = {
+    bar: 1
+  };
+
+  espionage.setup();
+
+  stub(foo, "bar", 2);
+  stub(foo, "bar", 3);
+
+  espionage.teardown();
+
+  equal(foo.bar, 1, "foo.bar was put back correctly");
+});

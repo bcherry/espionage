@@ -451,7 +451,7 @@ espionage.extend("spy", function(e) {
   });
 
   e.extendTeardown(function() {
-    for (var i = 0; i < spiedFunctions.length; i++) {
+    for (var i = spiedFunctions.length - 1; i >= 0; i--) {
       var spied = spiedFunctions[i];
       if (spied.namespace) {
         spied.namespace[spied.property] = spied.original;
@@ -537,7 +537,7 @@ espionage.extend("stub", function(e) {
   });
 
   e.extendTeardown(function() {
-    for (var i = 0; i < stubbedFunctions.length; i++) {
+    for (var i = stubbedFunctions.length - 1; i >= 0; i--) {
       var stubbed = stubbedFunctions[i];
 
       stubbed.namespace[stubbed.property] = stubbed.original;

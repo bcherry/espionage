@@ -580,7 +580,7 @@ espionage.extend("time", function(e) {
             } while (timer.next <= globalTime);
           } else {
             timer.fn.call();
-            delete timer[i];
+            delete timers[i];
           }
         }
       }

@@ -603,6 +603,11 @@ espionage.extend("time", function(e) {
     return clearTimer(id);
   });
 
+  e.extendTeardown(function() {
+    timers = [];
+    globalTime = 0;
+  });
+
   function generateTimer(fn, time, repeat) {
     if (typeof fn === "string") {
       fn = new Function(fn);

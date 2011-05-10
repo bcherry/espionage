@@ -79,6 +79,25 @@ test("you can control time", function() {
   });
 });
 
+test("timers get cleared", function() {
+  espionage.setup();
+
+  var called = false;
+  function f() {
+    called = true;
+  }
+  setTimeout(f, 10);
+
+  espionage.teardown();
+
+  espionage.setup();
+  wait(10);
+
+  equal(called, false, "didn't get called after teardown");
+
+  espionage.teardown();
+});
+
 test("timer edge cases", function() {
   espionage.use(function() {
     expect(1);
